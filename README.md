@@ -15,3 +15,5 @@ The following genomes were analysed:
 2) NC_004718.3 - SARS coronavirus.
 3) MN996532.1 - Bat coronavirus RaTG13.
 4) MT040333.1 - Pangolin coronavirus isolate PCoV_GX-P4L.
+
+![](https://bdetanico.github.io/Coronavirus_Genome_Analysis/Coronavirus_Genome_Analysis.gif)
