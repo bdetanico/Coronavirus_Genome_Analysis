@@ -1,0 +1,811 @@
+---
+title: "Coronavirus Genome Analysis"
+author: "Bernardo Carraro Detanico"
+date: "May 06, 2020"
+output:
+  html_document:
+      toc: yes
+      toc_depth: 2
+      code_folding: hide
+---
+
+```{r setup}
+knitr::opts_chunk$set(
+	message = FALSE,
+	warning = FALSE
+)
+```
+
+## 1. Introduction
+
+The outbreak of the new coronavirus disease (COVID-19), caused by the severe acute respiratory syndrome coronavirus 2 (SARS-CoV-2), has quickly become a global health emergency.
+
+- On 31 December 2019, the WHO (World Health Organization) China Country Office was informed of cases of unknown aetiology pneumonia (unknown cause) detected in Wuhan City, Hubei Province of China.
+- The Chinese authorities identified a new type of coronavirus, which was isolated on 7 January 2020.
+- On 30 January the WHO declared that the outbreak of 2019-nCoV constitutes a Public Health Emergency of International Concern.
+
+All coronaviruses that have caused diseases to humans have had animal origins, generally in bats, rodents, civet cats and dromedary camels (*Rabi FA, Al Zoubi MS, Kasasbeh GA, Salameh DM, Al-Nasser AD. SARS-CoV-2 and Coronavirus Disease 2019: What We Know So Far. Pathogens. 2020;9(3):231*). WHO informs that the COVID-19 most probably has its ecological reservoir in bats, and the transmission to humans has likely occurred through an intermediate animal host – a domestic animal, a wild animal or a domesticated wild animal which has not yet been identified. Some studies suggest, based on structural similarities between the viral receptor-binding domain and host, that pangolins, snakes, and turtles could be possible intermediate hosts of SARS-CoV-2 (*Liu, Z, Xiao, X, Wei, X, et al. Composition and divergence of coronavirus spike proteins and host ACE2 receptors predict potential intermediate hosts of SARS‐CoV‐2. J Med Virol. 2020; 92: 595– 601*).
+
+In this context, it is vital to explore potential intermediate hosts of SARS-CoV-2 to control COVID-19 spread, as well as, know more about the new coronavirus concerning the SARS-CoV. The current project compared the SARS-CoV-2 genome with SARS-CoV, Bat-CoV RaTG13 and Pangolin-CoV GX-P4L genomes. 
+  
+The following genomes were analysed:
+
+- **1) NC_045512.2** - Severe acute respiratory syndrome coronavirus 2 isolate Wuhan-Hu-1, complete genome (Submitted: 17-JAN-2020) (*Wu, F., Zhao, S., Yu, B. et al. A new coronavirus associated with human respiratory disease in China. Nature 579, 265–269 (2020)*)
+- **2) NC_004718.3** - SARS coronavirus, complete genome (Submitted: 31-AUG-2004) (*He R, Dobie F, Ballantine M, et al. Analysis of multimerization of the SARS coronavirus nucleocapsid protein. Biochem Biophys Res Commun. 2004;316(2):476‐483*)
+- **3) MN996532.1** - Bat coronavirus RaTG13, complete genome (Submitted 27-JAN-2020)  (*Zhou, P., Yang, X., Wang, X. et al. A pneumonia outbreak associated with a new coronavirus of probable bat origin. Nature 579, 270–273 (2020)*)
+- **4) MT040333.1** - Pangolin coronavirus isolate PCoV_GX-P4L, complete genome (Submitted: 08-FEB-2020) (*Liu P.; Jiang J.-Z.; Hua Y.; Wang X.; Hou F.; Wan X.-F.; Chen J.; Zou J.; Chen J. Are pangolins the intermediate host of the 2019 novel coronavirus (2019-nCoV)?. bioRxiv 2020, 2020.02.18.95462810.1101/2020.02.18.954628*)
+
+The genomes were collected from the National Center for Biotechnology - NCBI (https://www.ncbi.nlm.nih.gov).
+
+## 2. Loading packages
+```{r packages, echo=TRUE}
+library(seqinr)
+library(ggplot2)
+library(reshape2)
+library(Biostrings)
+library(DECIPHER)
+library(tidyverse)
+library(gggenes)
+```
+
+```{r echo=FALSE}
+setwd("C:/Users/bdeta/Documents/Projects/R/4 - Coronavirus_Genome_Analysis")
+```
+
+## 3. Reading files
+```{r}
+SARSCoV2 <- readDNAStringSet("NC_045512-2_SARSCoV2.fasta")
+SARSCoV2_f <- read.fasta("NC_045512-2_SARSCoV2.fasta")
+
+SARSCoV <- readDNAStringSet(file = "NC_004718-3 SARSCoV.fasta")
+SARSCoV_f <- read.fasta(file = "NC_004718-3 SARSCoV.fasta")
+
+BatCoV <- readDNAStringSet("Bat_CoV_RaTG13_MN996532.1.fasta")
+BatCoV_f <- read.fasta("Bat_CoV_RaTG13_MN996532.1.fasta")
+
+PanCoV <- readDNAStringSet("Pangolin_CoV_PCoV_GX-P4L_MT040333.1.fasta")
+PanCoV_f <- read.fasta("Pangolin_CoV_PCoV_GX-P4L_MT040333.1.fasta")
+
+Proteins_CoV2 <- readAAStringSet(file = "Proteins_CoV2.fasta")
+
+genes_CoVs <- read.csv("all_CoV2.csv")
+genes_CoVs <- as.data.frame(genes_CoVs)
+
+set <- c("NC_045512-2_SARSCoV2.fasta", "NC_004718-3 SARSCoV.fasta", "Bat_CoV_RaTG13_MN996532.1.fasta", "Pangolin_CoV_PCoV_GX-P4L_MT040333.1.fasta")
+all_CoV <- readDNAStringSet(set)
+all_CoV@ranges@NAMES
+```
+
+## 4. Genetic code analysis {.tabset .tabset-fade}
+
+### 4.1. SARS-CoV-2
+```{r}
+SARSCoV2seq <- SARSCoV2[[1]] # DNAString class (S4)
+SARSCoV2_fseq <- SARSCoV2_f[[1]] # Seqfastadna class (S3)
+```
+\
+      
+The length of SARS-CoV-2 genome:
+```{r}
+length(SARSCoV2seq) # count nº of DNA nucleotides
+```
+\
+      
+Nucleotides frequency:
+```{r}
+freq_CoV2 <- letterFrequency(SARSCoV2seq, letters="ACGT", OR=0) # count nº of each DNA nucleotide
+
+freq = freq_CoV2/sum(freq_CoV2)*100 # convert to proportions
+round(freq, 2)
+```
+\
+      
+Dinucleotides frequency:
+```{r}
+freq_CoV2d <- dinucleotideFrequency(SARSCoV2seq)
+round(dinucleotideFrequency(SARSCoV2seq, as.prob = TRUE)*100, 2)
+```
+\
+      
+#### 4.1.1. GC content
+The sequences with a high GC-content tend to be more stable than sequences with lower GC-content due to stacking interactions. The GC content directly affects the viral codon adaptation index using highly expressed human genes as the reference set, which may theoretically predict the efficiency of viral gene expression in human cells (*Auewarakul P. (2005). Composition bias and genome polarity of RNA viruses. Virus research, 109(1), 33–37*).
+```{r}
+round(letterFrequency(SARSCoV2seq, letters = "GC", as.prob = TRUE)*100,2)
+```
+\
+       
+#### 4.1.2. Local variation in GC content (sliding window analysis of GC content)
+```{r}
+var_GC_window <- function(windowsize, seq)
+{
+   sequence <- seq(1, length(seq) - windowsize, by = windowsize)
+   n <- length(sequence)
+   GC_content <- numeric(n)
+   for (i in 1:n) {
+        chunk <- seq[sequence[i]:(sequence[i] + windowsize - 1)]
+        chunkGC <- GC(chunk)*100
+        GC_content[i] <- chunkGC
+      }
+    comb_GCs <- cbind(data.frame(sequence), data.frame(GC_content))
+    return(comb_GCs)
+}
+chunk_GCs <- var_GC_window(1000, SARSCoV2_fseq)
+
+ggplot(chunk_GCs, aes(x=sequence, y=GC_content)) +
+  geom_line(color="#d7191c")+
+  geom_point(color="#d7191c")+
+  ggtitle("Local variation in GC content") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+\
+\
+        
+#### 4.1.3. Rho
+A statistic called ρ (Rho) was used to measure how over- or under-represented a particular nucleotide is.
+
+```{r}
+SARSCoV2_frho <- round(rho(SARSCoV2_fseq, wordsize = 2), 2)
+SARSCoV2_frho <- as.data.frame(SARSCoV2_frho)
+names(SARSCoV2_frho)[1] <- "Dinucleotide"
+SARSCoV2_frho$Dinucleotide = toupper(SARSCoV2_frho$Dinucleotide)
+names(SARSCoV2_frho)[2] <- "Frequency"
+
+SARSCoV2_frho %>%
+  mutate(over = ifelse(Frequency > 1.0, "Over", "Under")) %>% 
+  ggplot(aes(x=Dinucleotide, y=Frequency)) +
+  geom_bar(aes(fill=over), stat = 'identity') + scale_fill_manual(values = c('#d7191c','#d96c6e')) + theme(legend.title = element_blank()) + geom_text(aes(label=Frequency), vjust=1.2, color="white", size=2.6) + geom_abline(slope=0, intercept=1, col= "azure4", lty=2) + ggtitle("Over- and under-represented dinucleotides") + theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+       
+The dinucleotide “GC” is about 1.08 times as common in the SARS-CoV-2 virus sequence than expected. It seems to be slightly over-represented.
+\
+\
+      
+#### 4.1.4. TATA boxes 
+
+How many TATA boxes are there on SARS-CoV-2 genome? The TATA boxes (‘TATAAT’ sequence) are a nucleotides sequence related to transcription initiation, controlling gene expression.
+```{r}
+#Find all TATA boxes in the sequences of SARSCoV2
+
+matchPattern("TATAAT", SARSCoV2seq)
+```
+19 TATA boxes regions were found in SARS-CoV-2 genome.
+\
+\
+        
+#### 4.1.5. Reading Frames
+The viral RNA is single-stranded, so it only contains three possible reading frames, of which only one is translated.
+
+```{r}
+SARSCoV2Set <- DNAStringSet(SARSCoV2seq, 
+                        start = c(1, 2, 3), 
+                        end = c(29903, 29903,29903))
+SARSCoV2Set
+```
+\
+       
+#### 4.1.6. DNA to amino acids
+Translating nucleotide sequences into the corresponding amino acids sequence.
+```{r}
+SARSCoV2Set_aa <- translate(SARSCoV2Set)
+SARSCoV2Set_aa
+```
+\
+         
+### 4.2. SARS-CoV
+```{r}
+SARSCoVseq <- SARSCoV[[1]] # DNAString class (S4)
+SARSCoV_fseq <- SARSCoV_f[[1]] # Seqfastadna class (S3)
+```
+\
+        
+The length of SARS-CoV genome:
+```{r}
+length(SARSCoVseq) # count nº of DNA nucleotides
+```
+\
+       
+Nucleotides frequency:
+```{r}
+freq_CoV <- letterFrequency(SARSCoVseq, letters="ACGT", OR=0) # count nº of each DNA nucleotide
+
+freq = freq_CoV/sum(freq_CoV)*100 # convert to proportions
+round(freq, 2)
+```
+\
+        
+Dinucleotides frequency:
+```{r}
+freq_CoVd <- dinucleotideFrequency(SARSCoVseq)
+round(dinucleotideFrequency(SARSCoVseq, as.prob = TRUE)*100, 2)
+```
+\
+       
+#### 4.2.1. GC content
+```{r}
+round(letterFrequency(SARSCoVseq, letters = "GC", as.prob = TRUE)*100,2)
+```
+\
+        
+#### 4.2.2. Local variation in GC content (sliding window analysis of GC content)
+```{r}
+var_GC_window <- function(windowsize, seq)
+{
+   sequence <- seq(1, length(seq) - windowsize, by = windowsize)
+   n <- length(sequence)
+   GC_content <- numeric(n)
+   for (i in 1:n) {
+        chunk <- seq[sequence[i]:(sequence[i] + windowsize - 1)]
+        chunkGC <- GC(chunk)*100
+        GC_content[i] <- chunkGC
+      }
+    comb_GCs <- cbind(data.frame(sequence), data.frame(GC_content))
+    return(comb_GCs)
+}
+chunk_GCs <- var_GC_window(1000, SARSCoV_fseq)
+
+ggplot(chunk_GCs, aes(x=sequence, y=GC_content)) +
+  geom_line(color="#fdae61")+
+  geom_point(color="#fdae61")+
+  ggtitle("Local variation in GC content") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+\
+\
+       
+#### 4.2.3. Rho
+A statistic called ρ (Rho) was used to measure how over- or under-represented a particular nucleotide is.
+
+```{r}
+SARSCoV_frho <- round(rho(SARSCoV_fseq, wordsize = 2), 2)
+SARSCoV_frho <- as.data.frame(SARSCoV_frho)
+names(SARSCoV_frho)[1] <- "Dinucleotide"
+SARSCoV_frho$Dinucleotide = toupper(SARSCoV_frho$Dinucleotide)
+names(SARSCoV_frho)[2] <- "Frequency"
+
+SARSCoV_frho %>%
+  mutate(over = ifelse(Frequency > 1.0, "Over", "Under")) %>% 
+  ggplot(aes(x=Dinucleotide, y=Frequency)) +
+  geom_bar(aes(fill=over), stat = 'identity') + scale_fill_manual(values = c('#fdae61','#f5d0ab')) + theme(legend.title = element_blank()) + geom_text(aes(label=Frequency), vjust=1.2, color="white", size=2.6) + geom_abline(slope=0, intercept=1, col= "azure4", lty=2) + ggtitle("Over- and under-represented dinucleotides") + theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+       
+The dinucleotide “GC” is about 1.16 times as common in the SARS-CoV virus sequence than expected. It seems to be slightly over-represented.
+\
+\
+        
+#### 4.2.4. Reading Frames
+The viral RNA is single-stranded, so it only contains three possible reading frames, of which only one is translated.
+
+```{r}
+SARSCoVSet <- DNAStringSet(SARSCoVseq, 
+                        start = c(1, 2, 3), 
+                        end = c(29751, 29751,29751))
+SARSCoVSet
+```
+\
+
+#### 4.2.5. DNA to amino acids
+Translating nucleotide sequences into the corresponding amino acids sequence.
+```{r}
+SARSCoVSet_aa <- translate(SARSCoVSet)
+SARSCoVSet_aa
+```
+\
+
+### 4.3. Bat-CoV
+```{r}
+BatCoVseq <- BatCoV[[1]] # DNAString class (S4)
+BatCoV_fseq <- BatCoV_f[[1]] # Seqfastadna class (S3)
+```
+\
+         
+The length of Bat-CoV genome:
+```{r}
+length(BatCoVseq) # count nº of DNA nucleotides
+```
+\
+         
+Nucleotides frequency:
+```{r}
+freq_Bat <- letterFrequency(BatCoVseq, letters="ACGT", OR=0) # count nº of each DNA nucleotide
+
+freq = freq_Bat/sum(freq_Bat)*100 # convert to proportions
+round(freq, 2)
+```
+\
+       
+Dinucleotides frequency:
+```{r}
+freq_Batd <- dinucleotideFrequency(BatCoVseq)
+round(dinucleotideFrequency(BatCoVseq, as.prob = TRUE)*100, 2)
+```
+\
+       
+#### 4.3.1. GC content
+```{r}
+round(letterFrequency(BatCoVseq, letters = "GC", as.prob = TRUE)*100,2)
+```
+\
+       
+#### 4.3.2. Local variation in GC content (sliding window analysis of GC content)
+```{r}
+var_GC_window <- function(windowsize, seq)
+{
+   sequence <- seq(1, length(seq) - windowsize, by = windowsize)
+   n <- length(sequence)
+   GC_content <- numeric(n)
+   for (i in 1:n) {
+        chunk <- seq[sequence[i]:(sequence[i] + windowsize - 1)]
+        chunkGC <- GC(chunk)*100
+        GC_content[i] <- chunkGC
+      }
+    comb_GCs <- cbind(data.frame(sequence), data.frame(GC_content))
+    return(comb_GCs)
+}
+chunk_GCs <- var_GC_window(1000, BatCoV_fseq)
+
+ggplot(chunk_GCs, aes(x=sequence, y=GC_content)) +
+  geom_line(color="#abdda4")+
+  geom_point(color="#abdda4")+
+  ggtitle("Local variation in GC content") + theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+\
+\
+       
+#### 4.3.3. Rho
+A statistic called ρ (Rho) was used to measure how over- or under-represented a particular nucleotide is.
+
+```{r}
+BatCoV_frho <- round(rho(BatCoV_fseq, wordsize = 2), 2)
+BatCoV_frho <- as.data.frame(BatCoV_frho)
+names(BatCoV_frho)[1] <- "Dinucleotide"
+BatCoV_frho$Dinucleotide = toupper(BatCoV_frho$Dinucleotide)
+names(BatCoV_frho)[2] <- "Frequency"
+
+BatCoV_frho %>%
+  mutate(over = ifelse(Frequency > 1.0, "Over", "Under")) %>% 
+  ggplot(aes(x=Dinucleotide, y=Frequency)) +
+  geom_bar(aes(fill=over), stat = 'identity') + scale_fill_manual(values = c('#abdda4','#daebd8')) + theme(legend.title = element_blank()) + geom_text(aes(label=Frequency), vjust=1.2, color="white", size=2.6) + geom_abline(slope=0, intercept=1, col= "azure4", lty=2) + ggtitle("Over- and under-represented dinucleotides") + theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+        
+The dinucleotide “GC” is about 1.08 times as common in the Bat-CoV virus sequence than expected. It seems to be slightly over-represented. The result is the same as the SARS-CoV-2.
+\
+\
+        
+#### 4.3.4. Reading Frames
+The viral RNA is single-stranded, so it only contains three possible reading frames, of which only one is translated.
+
+```{r}
+BatCoVSet <- DNAStringSet(BatCoVseq, 
+                        start = c(1, 2, 3), 
+                        end = c(29855, 29855,29855))
+BatCoVSet
+```
+\ 
+        
+#### 4.3.5. DNA to amino acids
+Translating nucleotide sequences into the corresponding amino acids sequence.
+```{r}
+BatCoVSet_aa <- translate(BatCoVSet)
+BatCoVSet_aa
+```
+\
+        
+        
+### 4.4. Pangolin-CoV
+```{r}
+PanCoVseq <- PanCoV[[1]] # DNAString class (S4)
+PanCoV_fseq <- PanCoV_f[[1]] # Seqfastadna class (S3)
+```
+\
+        
+The length of Pangolin-CoV genome:
+```{r}
+length(PanCoVseq) # count nº of DNA nucleotides
+```
+\
+       
+Nucleotides frequency:
+```{r}
+freq_Pan <- letterFrequency(PanCoVseq, letters="ACGT", OR=0) # count nº of each DNA nucleotide
+
+freq = freq_Pan/sum(freq_Pan)*100 # convert to proportions
+round(freq, 2)
+```
+\
+        
+Dinucleotides frequency:
+```{r}
+freq_Pand <- dinucleotideFrequency(PanCoVseq)
+round(dinucleotideFrequency(PanCoVseq, as.prob = TRUE)*100, 2)
+```
+\
+       
+#### 4.4.1. GC content
+```{r}
+round(letterFrequency(PanCoVseq, letters = "GC", as.prob = TRUE)*100,2)
+```
+\
+        
+#### 4.4.2. Local variation in GC content (sliding window analysis of GC content)
+```{r}
+var_GC_window <- function(windowsize, seq)
+{
+   sequence <- seq(1, length(seq) - windowsize, by = windowsize)
+   n <- length(sequence)
+   GC_content <- numeric(n)
+   for (i in 1:n) {
+        chunk <- seq[sequence[i]:(sequence[i] + windowsize - 1)]
+        chunkGC <- GC(chunk)*100
+        GC_content[i] <- chunkGC
+      }
+    comb_GCs <- cbind(data.frame(sequence), data.frame(GC_content))
+    return(comb_GCs)
+}
+chunk_GCs <- var_GC_window(1000, PanCoV_fseq)
+
+ggplot(chunk_GCs, aes(x=sequence, y=GC_content)) +
+  geom_line(color="#2b83ba")+
+  geom_point(color="#2b83ba")+
+  ggtitle("Local variation in GC content") + theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+\
+\
+       
+#### 4.4.3. Rho
+A statistic called ρ (Rho) was used to measure how over- or under-represented a particular nucleotide is.
+
+```{r}
+PanCoV_frho <- round(rho(PanCoV_fseq, wordsize = 2), 2)
+PanCoV_frho <- as.data.frame(PanCoV_frho)
+names(PanCoV_frho)[1] <- "Dinucleotide"
+PanCoV_frho$Dinucleotide = toupper(PanCoV_frho$Dinucleotide)
+names(PanCoV_frho)[2] <- "Frequency"
+
+PanCoV_frho %>%
+  mutate(over = ifelse(Frequency > 1.0, "Over", "Under")) %>% 
+  ggplot(aes(x=Dinucleotide, y=Frequency)) +
+  geom_bar(aes(fill=over), stat = 'identity') + scale_fill_manual(values = c('#2b83ba','#709eba')) + theme(legend.title = element_blank()) + geom_text(aes(label=Frequency), vjust=1.2, color="white", size=2.6) + geom_abline(slope=0, intercept=1, col= "azure4", lty=2) + ggtitle("Over- and under-represented dinucleotides") + theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+       
+The dinucleotide “GC” is about 1.07 times as common in the Pangolin-CoV virus sequence than expected. It seems to be slightly over-represented.
+\
+\
+        
+#### 4.4.4. Reading Frames
+The viral RNA is single-stranded, so it only contains three possible reading frames, of which only one is translated.
+
+```{r}
+PanCoVSet <- DNAStringSet(PanCoVseq, 
+                        start = c(1, 2, 3), 
+                        end = c(29805, 29805,29805))
+PanCoVSet
+```
+\
+      
+#### 4.4.5. DNA to amino acids
+Translating nucleotide sequences into the corresponding amino acids sequence.
+```{r}
+PanCoVSet_aa <- translate(PanCoVSet)
+PanCoVSet_aa
+```
+
+---
+\
+\
+       
+## 5. Comparing SARS-CoV-2, SARS-CoV, Bat-CoV and Pangolin-CoV
+
+### 5.1. Comparing nucleotides
+```{r}
+freq_CoV2 <- as.data.frame(freq_CoV2)
+freq_CoV2 <- rownames_to_column(freq_CoV2, "Nucleotide")
+
+
+freq_CoV <- as.data.frame(freq_CoV)
+freq_CoV <- rownames_to_column(freq_CoV, "Nucleotide")
+
+
+freq_Bat <- as.data.frame(freq_Bat)
+freq_Bat <- rownames_to_column(freq_Bat, "Nucleotide")
+
+freq_Pan <- as.data.frame(freq_Pan)
+freq_Pan <- rownames_to_column(freq_Pan, "Nucleotide")
+
+temp <- merge(freq_CoV2, freq_CoV, by = "Nucleotide")
+temp_1 <- merge(temp, freq_Bat, by = "Nucleotide")
+N <- merge(temp_1, freq_Pan, by = "Nucleotide")
+colnames(N) <- gsub('freq_CoV2','SARS-CoV-2',names(N))
+colnames(N) <- gsub('freq_CoV','SARS-CoV',names(N))
+colnames(N) <- gsub('freq_Bat','Bat-CoV',names(N))
+colnames(N) <- gsub('freq_Pan','Pangolin-CoV',names(N))
+N_melt = melt(N, id.vars = c("Nucleotide"),
+                measure.vars = c("SARS-CoV-2", "SARS-CoV", "Bat-CoV", "Pangolin-CoV"))
+
+ggplot(N_melt, aes(x=Nucleotide, y=value, fill=variable)) +
+  geom_bar(stat="identity", position=position_dodge(), color="white") + scale_fill_manual(values = c('#d7191c','#fdae61', '#abdda4', '#2b83ba')) + theme(legend.title = element_blank()) + geom_abline(slope=0, intercept=1, col= "azure4", lty=2) + ggtitle("Nucleotides Frequency") + theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+freq_CoV2d <- as.data.frame(freq_CoV2d)
+freq_CoV2d <- rownames_to_column(freq_CoV2d, "Dinucleotide")
+
+freq_CoVd <- as.data.frame(freq_CoVd)
+freq_CoVd <- rownames_to_column(freq_CoVd, "Dinucleotide")
+
+freq_Batd <- as.data.frame(freq_Batd)
+freq_Batd <- rownames_to_column(freq_Batd, "Dinucleotide")
+
+freq_Pand <- as.data.frame(freq_Pand)
+freq_Pand <- rownames_to_column(freq_Pand, "Dinucleotide")
+
+temp <- merge(freq_CoV2d, freq_CoVd, by = "Dinucleotide")
+temp_1 <- merge(temp, freq_Batd, by = "Dinucleotide")
+D <- merge(temp_1, freq_Pand, by = "Dinucleotide")
+colnames(D) <- gsub('freq_CoV2d','SARS-CoV-2',names(D))
+colnames(D) <- gsub('freq_CoVd','SARS-CoV',names(D))
+colnames(D) <- gsub('freq_Batd','Bat-CoV',names(D))
+colnames(D) <- gsub('freq_Pand','Pangolin-CoV',names(D))
+D_melt = melt(D, id.vars = c("Dinucleotide"),
+                measure.vars = c("SARS-CoV-2", "SARS-CoV", "Bat-CoV", "Pangolin-CoV"))
+
+ggplot(D_melt, aes(x=Dinucleotide, y=value, fill=variable)) +
+  geom_bar(stat="identity", position=position_dodge(), color="white") + scale_fill_manual(values = c('#d7191c','#fdae61', '#abdda4', '#2b83ba')) + theme(legend.title = element_blank()) + geom_abline(slope=0, intercept=1, col= "azure4", lty=2) + ggtitle("Dinucleotides Frequency") + theme_minimal() + theme(legend.position="bottom") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+        
+The nucleotides and dinucleotides frequencies are similar between SARS-CoV-2 and Bat-CoV. There is a GC content similarity between SARS-CoV-2 (37.97%), Bat-CoV (38.04%) and Pangolin-CoV (38.52%).
+\
+\
+        
+### 5.2. Comparing Genomes
+
+Before making comparative statements about two sequences, the pairwise sequence alignment procedure was done. Pairwise alignment refers to the optimal way of arranging two sequences in order to identify regions of similarity.
+\
+\
+        
+**5.2.1.SARS-CoV-2 vs SARS-CoV**
+```{r}
+scoringmat <- nucleotideSubstitutionMatrix(match = 0, mismatch = 1, baseOnly = TRUE)
+gapOpen <- 1
+gapExtend <- 1
+
+alignment <- pairwiseAlignment(SARSCoV2seq, SARSCoVseq, substitutionMatrix = scoringmat, gapOpening = gapOpen, gapExtension = gapExtend, type="global", scoreOnly = FALSE)
+
+#pid(alignment) # the percent sequence identity, similarity between two sequences.
+#seqs <- c(alignedPattern(alignment), alignedSubject(alignment))
+#BrowseSeqs(seqs)
+```
+Genome similarity between SARS-CoV-2 and SARS-CoV is 79.4%.
+\
+\
+        
+**5.2.2. SARS-CoV-2 vs Bat-CoV**
+```{r}
+alignment <- pairwiseAlignment(SARSCoV2seq, BatCoVseq, substitutionMatrix = scoringmat, gapOpening = gapOpen, gapExtension = gapExtend, type="global", scoreOnly = FALSE)
+
+#pid(alignment)
+```
+Genome similarity between SARS-CoV-2 and Bat-CoV is 96.11%.
+\
+\
+        
+**5.2.3. SARS-CoV-2 vs Pangolin-CoV**
+```{r}
+alignment <- pairwiseAlignment(SARSCoV2seq, PanCoVseq, substitutionMatrix = scoringmat, gapOpening = gapOpen, gapExtension = gapExtend, type="global", scoreOnly = FALSE)
+
+#pid(alignment)
+```
+Genome similarity between SARS-CoV-2 and Pangolin-CoV is 85.38%.
+\
+\
+        
+Overview of the genomes and their proteins:
+```{r}
+dummies <- make_alignment_dummies(
+  genes_CoVs,
+  aes(xmin = Start, xmax = End, y = Genome, id = Gene),
+  on = "M"
+)
+
+options(repr.plot.width = 5, repr.plot.height = 4)
+ggplot(genes_CoVs, aes(xmin = Start, xmax = End, y = Genome, fill = Gene, label = Gene)) +
+  facet_wrap(~Genome, scales = "free", ncol = 1) +
+  geom_gene_label(align = "left") +
+  geom_blank(data = dummies) +
+  theme_genes() +
+  geom_gene_arrow(arrowhead_height = unit(3, "mm"), arrowhead_width = unit(1, "mm")) +
+  geom_gene_label(align = "left") +
+  theme(legend.position = "bottom")
+
+```
+\
+\
+         
+### 5.3. Identifying Proteins
+
+E and ORF3a proteins from SARS-CoV-2 are collectively required for viral replication and virulence. Particularly, E protein is a virulence factor that activates the NLRP3 inflammasome (*Siu K. ‐L., Yuen K. ‐S., Castano‐Rodriguez C., Ye Z. ‐W., Yeung M. ‐L., Fung S. ‐Y., Yuan S., Chan C. ‐P., Yuen K. ‐Y., Enjuanes L., & Jin D. ‐Y., (2019). Severe acute respiratory syndrome coronavirus ORF3a protein activates the NLRP3 inflammasome by promoting TRAF3-dependent ubiquitination of ASC. The FASEB Journal, 33(8), 8865–8877. 10.1096/fj.201802418R*).
+
+These proteins were compared on SARS-CoV, Bat-CoV and Pangolin-CoV genomes.
+\
+\
+\
+      
+**5.3.1. SARS-CoV-2 E protein on SARS-CoV Genome**
+```{r}
+data("BLOSUM62")
+align <- pairwiseAlignment(Proteins_CoV2$`YP_009724392.1 envelope protein [Severe acute respiratory syndrome coronavirus 2]`, SARSCoVSet_aa[[2]], substitutionMatrix = BLOSUM62, gapOpening = gapOpen, gapExtension = gapExtend, type="local", scoreOnly = FALSE)
+#pid(align)
+summary(align)@mismatchSummary$subject
+#mismatchTable(align)@mismatchSummary$subject
+#nmatch(align)
+#nmismatch(align)
+seqs <- c(alignedPattern(align), alignedSubject(align))
+#BrowseSeqs(seqs,  colWidth=100, highlight=0)
+
+```
+The SARS-CoV-2 E protein (envelope protein) showed a sequence identity of 94.7% on SARS-CoV genome. 3 amino acid mismatches were identified.
+
+```{r, results = 'asis', echo = FALSE}
+TF <- tempfile()
+
+BrowseSeqs(seqs,
+           htmlFile = TF, colWidth=90, highlight=0)
+
+cat(htmltools::includeHTML(TF))
+```
+\
+       
+**5.3.2. SARSCoV2 ORF3a protein on SARSCoV Genome**
+```{r}
+align <- pairwiseAlignment(Proteins_CoV2$`YP_009724391.1 ORF3a protein [Severe acute respiratory syndrome coronavirus 2]`, SARSCoVSet_aa[[2]], substitutionMatrix = BLOSUM62, gapOpening = gapOpen, gapExtension = gapExtend, type="local", scoreOnly = FALSE)
+#pid(align)
+summary(align)@mismatchSummary$subject
+
+seqs <- c(alignedPattern(align), alignedSubject(align))
+```
+The SARS-CoV-2 ORF3a protein showed a sequence identity of 72.4% on SARS-CoV genome. 61 amino acid mismatches were identified.
+
+```{r, results = 'asis', echo = FALSE}
+TF <- tempfile()
+
+BrowseSeqs(seqs,
+           htmlFile = TF, colWidth=90, highlight=0)
+
+cat(htmltools::includeHTML(TF))
+```
+\
+\
+       
+**5.3.3. SARS-CoV-2 E protein on Bat-CoV Genome**
+```{r}
+align <- pairwiseAlignment(Proteins_CoV2$`YP_009724392.1 envelope protein [Severe acute respiratory syndrome coronavirus 2]`, BatCoVSet_aa[[1]], substitutionMatrix = BLOSUM62, gapOpening = gapOpen, gapExtension = gapExtend, type="local", scoreOnly = FALSE)
+#pid(align)
+
+seqs <- c(alignedPattern(align), alignedSubject(align))
+```
+The SARS-CoV-2 E protein (envelope protein) showed a sequence identity of 100% on Bat-CoV genome.
+
+```{r, results = 'asis', echo = FALSE}
+TF <- tempfile()
+
+BrowseSeqs(seqs,
+           htmlFile = TF, colWidth=90, highlight=0)
+
+cat(htmltools::includeHTML(TF))
+```
+\
+        
+**5.3.4. SARSCoV2 ORF3a protein on Bat-CoV Genome**
+```{r}
+align <- pairwiseAlignment(Proteins_CoV2$`YP_009724391.1 ORF3a protein [Severe acute respiratory syndrome coronavirus 2]`, BatCoVSet_aa[[1]], substitutionMatrix = BLOSUM62, gapOpening = gapOpen, gapExtension = gapExtend, type="local", scoreOnly = FALSE)
+#pid(align)
+summary(align)@mismatchSummary$subject
+seqs <- c(alignedPattern(align), alignedSubject(align))
+```
+The SARS-CoV-2 ORF3a protein showed a sequence identity of 97.81% on Bat-CoV genome. 6 amino acid mismatches were identified.
+
+```{r, results = 'asis', echo = FALSE}
+TF <- tempfile()
+
+BrowseSeqs(seqs,
+           htmlFile = TF, colWidth=90, highlight=0)
+
+cat(htmltools::includeHTML(TF))
+```
+\
+        
+**5.3.5. SARS-CoV-2 E protein on Pangolin-CoV Genome**
+```{r}
+align <- pairwiseAlignment(Proteins_CoV2$`YP_009724392.1 envelope protein [Severe acute respiratory syndrome coronavirus 2]`, PanCoVSet_aa[[3]], substitutionMatrix = BLOSUM62, gapOpening = gapOpen, gapExtension = gapExtend, type="local", scoreOnly = FALSE)
+#pid(align)
+seqs <- c(alignedPattern(align), alignedSubject(align))
+```
+The SARS-CoV-2 E protein (envelope protein) showed a sequence identity of 100% on Pangolin-CoV genome.
+
+```{r, results = 'asis', echo = FALSE}
+TF <- tempfile()
+
+BrowseSeqs(seqs,
+           htmlFile = TF, colWidth=90, highlight=0)
+
+cat(htmltools::includeHTML(TF))
+```
+\
+         
+**5.3.6. SARSCoV2 ORF3a protein on Pangolin-CoV Genome**
+```{r}
+align <- pairwiseAlignment(Proteins_CoV2$`YP_009724391.1 ORF3a protein [Severe acute respiratory syndrome coronavirus 2]`, PanCoVSet_aa[[3]], substitutionMatrix = BLOSUM62, gapOpening = gapOpen, gapExtension = gapExtend, type="local", scoreOnly = FALSE)
+#pid(align)
+summary(align)@mismatchSummary$subject
+
+seqs <- c(alignedPattern(align), alignedSubject(align))
+```
+The SARS-CoV-2 ORF3a protein showed a sequence identity of 89.4% on Pangolin-CoV genome. 29 amino acid mismatches were identified.
+
+```{r, results = 'asis', echo = FALSE}
+TF <- tempfile()
+
+BrowseSeqs(seqs,
+           htmlFile = TF, colWidth=90, highlight=0)
+
+cat(htmltools::includeHTML(TF))
+```
+\
+        
+### 5.4 The peptide KRSFIEDLLFNKV
+
+The peptide KRSFIEDLLFNKV occurs in the spike glycoprotein of SARS-CoV-2 and it seems to be responsible for initial binding of previous SARS coronaviruses to lung cells and their activation. Besides, the peptide is exposed or potentially exposable on the surface of the virus. In viruses, proteins of similar exposable nature are primary targets for blocking the virus from infecting host cells (*Robson B. (2020). COVID-19 Coronavirus spike protein analysis for synthetic vaccines, a peptidomimetic antagonist, and therapeutic drugs, and analysis of a proposed achilles’ heel conserved region to minimize probability of escape mutations and drug resistance. Computers in Biology and Medicine, 103749*).
+
+The presence of the peptide KRSFIEDLLFNKV was verified on SARS-CoV-2, SARS-CoV, Bat-CoV and Pangolin-CoV genomes.
+
+```{r}
+vmatchPattern("KRSFIEDLLFNKV", SARSCoV2Set_aa)
+vmatchPattern("KRSFIEDLLFNKV", SARSCoVSet_aa)
+vmatchPattern("KRSFIEDLLFNKV", BatCoVSet_aa)
+vmatchPattern("KRSFIEDLLFNKV", PanCoVSet_aa)
+```
+
+The peptide KRSFIEDLLFNKV is present in all genomes analysed, which suggests as a possible conserved region. This region deserves attention as a possible target for vaccine development and an important target for the development of therapeutic drugs.
+\
+\
+        
+## 6. Conclusion
+
+- SARS-CoV-2 shares **96.1%** whole genome **identity with Bat-CoV RaTG13**.
+- SARS-CoV-2 shares **85.3%** whole genome **identity with Pangolin-CoV GX-P4L**.
+- SARS-CoV-2 shares **79.4%** whole genome **identity with SARS-CoV**.
+\
+\
+         
+- **SARS-CoV-2 E protein (envelope protein)** showed a sequence **identity of 100% on Bat-CoV genome**.
+- **SARS-CoV-2 ORF3a protein** showed a sequence **identity of 97.81% on Bat-CoV genome**.
+\
+\
+        
+- **SARS-CoV-2 E protein (envelope protein)** showed a sequence **identity of 100% on Pandolin-CoV genome**.
+- **The SARS-CoV-2 ORF3a protein** showed a sequence **identity of 89.4% on Bat-CoV genome**. 
+\
+\
+       
+- **SARS-CoV-2 E protein (envelope protein)** showed a sequence **identity of 94.7% on SARS-CoV genome**.
+- **SARS-CoV-2 ORF3a protein** showed a sequence **identity of 72.4% on SARS-CoV genome**.
+\
+       
+- The peptide KRSFIEDLLFNKV is present in SARS-CoV-2, SARS-CoV, Bat-CoV and Pangolin-CoV.
+\
+\
+       
+**1.** The Bat is a probable species of origin for novel coronavirus (SARS-CoV-2), because SARS-CoV-2 shares 96.1% whole genome identity with a the Bat-CoV RaTG13 genome.
+    
+**2.** The E protein (envelope protein) sequence seems to be highly conserved across the coronavirus genomes analysed, particularly on Bat-CoV and Pangolin-CoV.
+    
+**3.** The peptide KRSFIEDLLFNKV, which occurs in coronavirus S glycoprotein, is surface-exposed and mediates entry into host cells, and it seems to be highly conserved across all the coronavirus genomes analysed.
